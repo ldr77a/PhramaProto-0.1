@@ -170,6 +170,9 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
                 model=model,
                 snapshot_id=str(repository.health()["snapshot_id"]),
                 request_id=failure.request_id,
+                provider_code=failure.provider_code,
+                provider_status=failure.provider_status,
+                provider_reason=failure.provider_reason,
             )
             return jsonify(error=failure.code), failure.status_code
         candidates = run_generation(spec, repository=repository, offline=True)

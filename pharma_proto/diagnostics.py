@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import logging
 from collections import deque
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Mapping
 
 from pharma_proto import __version__
 
@@ -30,6 +30,13 @@ def _safe_text(value: object | None, *, limit: int = 200) -> str | None:
     return text[:limit]
 
 
+def _safe_code(value: object | None) -> str | None:
+    text = str(value).strip() if value is not None else ""
+    if not text or any(not (character.isalnum() or character in "_.-") for character in text):
+        return None
+    return text[:80]
+
+
 class SafeDiagnostics:
     def __init__(self, logger: logging.Logger, handler: RotatingFileHandler) -> None:
         self._logger = logger
@@ -46,6 +53,9 @@ class SafeDiagnostics:
         model: str | None = None,
         snapshot_id: str | None = None,
         request_id: str | None = None,
+        provider_code: int | None = None,
+        provider_status: str | None = None,
+        provider_reason: str | None = None,
     ) -> None:
         if self._closed:
             return
@@ -63,6 +73,15 @@ class SafeDiagnostics:
         }
         for key, value in optional.items():
             safe = _safe_text(value)
+            if safe is not None:
+                row[key] = safe
+        provider_codes = {
+            "provider_code": provider_code,
+            "provider_status": provider_status,
+            "provider_reason": provider_reason,
+        }
+        for key, value in provider_codes.items():
+            safe = _safe_code(value)
             if safe is not None:
                 row[key] = safe
         if code:

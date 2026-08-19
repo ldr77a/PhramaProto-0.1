@@ -18,6 +18,7 @@ from generation.excipient_allocator import Alloc
 from generation.generation_loop import Candidate
 from pharma_proto.app import create_app, shutdown_app_resources
 from pharma_proto.excel_export import candidate_workbook
+from pharma_proto.llm.resilience import LLMFailure
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -81,6 +82,14 @@ class _FakeLLMService:
 
     def parse(self, provider: str, tier: str, api_key: str, question: str):
         return self._spec
+
+
+class _FailingLLMService:
+    def __init__(self, failure: LLMFailure) -> None:
+        self._failure = failure
+
+    def parse(self, provider: str, tier: str, api_key: str, question: str):
+        raise self._failure
 
 
 @pytest.fixture
@@ -242,6 +251,37 @@ def test_generate_returns_one_real_xlsx_download_per_candidate(
         100.0,
         "총중량 600mg",
     ]
+
+
+def test_generate_logs_safe_provider_diagnostics(app_factory, tmp_path: Path) -> None:
+    failure = LLMFailure(
+        "LLM-UPSTREAM-001",
+        False,
+        provider_code=400,
+        provider_status="INVALID_ARGUMENT",
+        provider_reason="API_KEY_INVALID",
+    )
+    client = app_factory(llm_service=_FailingLLMService(failure)).test_client()
+    assert client.post(
+        "/api/key",
+        json={"provider": "gemini", "api_key": "test-key"},
+    ).status_code == 200
+
+    response = client.post(
+        "/api/generate",
+        json={
+            "provider": "gemini",
+            "tier": "cheap",
+            "question": "아세트아미노펜 500 mg 정제",
+        },
+    )
+
+    assert response.status_code == 502
+    rows = (tmp_path / "PhramaProto" / "logs" / "app.log").read_text(encoding="utf-8")
+    row = json.loads(rows.splitlines()[-1])
+    assert row["provider_code"] == "400"
+    assert row["provider_status"] == "INVALID_ARGUMENT"
+    assert row["provider_reason"] == "API_KEY_INVALID"
 
 
 @pytest.mark.parametrize(
