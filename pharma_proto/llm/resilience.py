@@ -105,6 +105,8 @@ def _provider_reason(error: Exception) -> str | None:
         payload = body.get("error", body)
         if isinstance(payload, dict):
             message = str(payload.get("message", "")).casefold()
+            if any(word in message for word in ("credit", "balance", "billing", "payment")):
+                return "BILLING_REQUIRED"
             if "output_config" in message or "schema" in message:
                 return "STRUCTURED_OUTPUT_INVALID"
             if "tool" in message:

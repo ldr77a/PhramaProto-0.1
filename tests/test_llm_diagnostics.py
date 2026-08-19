@@ -57,6 +57,25 @@ def test_anthropic_bad_request_keeps_a_safe_structured_output_reason() -> None:
     assert failure.provider_reason == "STRUCTURED_OUTPUT_INVALID"
 
 
+def test_anthropic_low_credit_error_is_classified_without_logging_its_message() -> None:
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(400, request=request, headers={"request-id": "req_test"})
+    error = BadRequestError(
+        "invalid request",
+        response=response,
+        body={
+            "error": {
+                "type": "invalid_request_error",
+                "message": "Your credit balance is too low to access the Anthropic API.",
+            }
+        },
+    )
+
+    failure = classify_provider_error(error)
+
+    assert failure.provider_reason == "BILLING_REQUIRED"
+
+
 def test_safe_log_records_provider_codes_without_error_message(tmp_path: Path) -> None:
     diagnostics = configure_safe_logging(tmp_path)
 
