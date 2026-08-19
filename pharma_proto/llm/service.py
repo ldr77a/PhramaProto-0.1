@@ -113,7 +113,7 @@ class LLMService:
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_INSTRUCTION,
                         response_mime_type="application/json",
-                        response_json_schema=ParsedRequest.model_json_schema(),
+                        response_schema=ParsedRequest,
                     ),
                 )
                 return ParsedRequest.model_validate_json(response.text)
