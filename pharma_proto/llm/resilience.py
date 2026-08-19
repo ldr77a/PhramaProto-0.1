@@ -82,23 +82,39 @@ def _retry_after(error: Exception) -> float | None:
 
 
 def _provider_status(error: Exception) -> str | None:
-    value = getattr(error, "status", None)
-    return str(value)[:80] if isinstance(value, str) and value else None
+    for name in ("status", "type"):
+        value = getattr(error, name, None)
+        if isinstance(value, str) and value:
+            return str(value)[:80]
+    return None
 
 
 def _provider_reason(error: Exception) -> str | None:
     details = getattr(error, "details", None)
-    if not isinstance(details, dict):
-        return None
-    payload = details.get("error", details)
-    if not isinstance(payload, dict):
-        return None
-    items = payload.get("details", [])
-    if not isinstance(items, list):
-        return None
-    for item in items:
-        if isinstance(item, dict) and isinstance(item.get("reason"), str):
-            return str(item["reason"])[:80]
+    if isinstance(details, dict):
+        payload = details.get("error", details)
+        if isinstance(payload, dict):
+            items = payload.get("details", [])
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict) and isinstance(item.get("reason"), str):
+                        return str(item["reason"])[:80]
+
+    body = getattr(error, "body", None)
+    if isinstance(body, dict):
+        payload = body.get("error", body)
+        if isinstance(payload, dict):
+            message = str(payload.get("message", "")).casefold()
+            if "output_config" in message or "schema" in message:
+                return "STRUCTURED_OUTPUT_INVALID"
+            if "tool" in message:
+                return "TOOL_CONFIGURATION_INVALID"
+            if "model" in message:
+                return "MODEL_INVALID"
+            if "max_tokens" in message:
+                return "MAX_TOKENS_INVALID"
+            if message:
+                return "INVALID_REQUEST"
     return None
 
 

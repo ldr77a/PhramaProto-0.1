@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
+from anthropic import BadRequestError
 from google.genai.errors import ClientError
 
 from pharma_proto.diagnostics import configure_safe_logging
@@ -33,6 +35,26 @@ def test_google_client_error_keeps_safe_provider_diagnostics() -> None:
     assert getattr(failure, "provider_code", None) == 400
     assert getattr(failure, "provider_status", None) == "INVALID_ARGUMENT"
     assert getattr(failure, "provider_reason", None) == "API_KEY_INVALID"
+
+
+def test_anthropic_bad_request_keeps_a_safe_structured_output_reason() -> None:
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(400, request=request, headers={"request-id": "req_test"})
+    error = BadRequestError(
+        "invalid request",
+        response=response,
+        body={
+            "error": {
+                "type": "invalid_request_error",
+                "message": "output_config.format.schema: schema is invalid",
+            }
+        },
+    )
+
+    failure = classify_provider_error(error)
+
+    assert failure.provider_status == "invalid_request_error"
+    assert failure.provider_reason == "STRUCTURED_OUTPUT_INVALID"
 
 
 def test_safe_log_records_provider_codes_without_error_message(tmp_path: Path) -> None:

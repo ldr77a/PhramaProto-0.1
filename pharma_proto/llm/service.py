@@ -101,6 +101,52 @@ def _gemini_response_schema() -> dict[str, Any]:
     }
 
 
+def _claude_tool_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "apis": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "dose_mg": {"type": ["number", "null"]},
+                    },
+                    "required": ["name"],
+                    "additionalProperties": False,
+                },
+            },
+            "dosage_form": {"type": "string"},
+            "binder": {"type": "array", "items": {"type": "string"}},
+            "disintegrant": {"type": "array", "items": {"type": "string"}},
+            "diluent": {"type": "array", "items": {"type": "string"}},
+            "lubricant": {"type": "array", "items": {"type": "string"}},
+            "additional_roles": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "role": {"type": "string"},
+                        "ingredients": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": ["role"],
+                    "additionalProperties": False,
+                },
+            },
+            "process": {"type": "string"},
+            "release_profile": {"type": "string"},
+            "n_candidates": {"type": "integer"},
+            "target_total_mg": {"type": ["number", "null"]},
+        },
+        "required": ["apis"],
+        "additionalProperties": False,
+    }
+
+
 class LLMService:
     def __init__(
         self,
@@ -139,14 +185,28 @@ class LLMService:
                 )
                 return _coerce_parsed(response.output_parsed)
             if provider == "claude":
-                response = client.messages.parse(
+                tool_name = "parse_formulation_request"
+                response = client.messages.create(
                     model=model,
                     max_tokens=2048,
                     system=SYSTEM_INSTRUCTION,
                     messages=[{"role": "user", "content": question}],
-                    output_format=ParsedRequest,
+                    tools=[
+                        {
+                            "name": tool_name,
+                            "description": "Return the structured formulation request.",
+                            "input_schema": _claude_tool_schema(),
+                        }
+                    ],
+                    tool_choice={"type": "tool", "name": tool_name},
                 )
-                return _coerce_parsed(response.parsed_output)
+                for block in response.content:
+                    if (
+                        getattr(block, "type", None) == "tool_use"
+                        and getattr(block, "name", None) == tool_name
+                    ):
+                        return _coerce_parsed(block.input)
+                raise ValueError("Claude response did not contain the requested tool result")
             if provider == "gemini":
                 from google.genai import types
 
