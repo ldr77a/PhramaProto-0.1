@@ -58,6 +58,19 @@ def _coerce_parsed(value: object) -> ParsedRequest:
     return ParsedRequest.model_validate(value)
 
 
+def _gemini_response_schema() -> dict[str, Any]:
+    schema = ParsedRequest.model_json_schema()
+    pending: list[object] = [schema]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            node.pop("exclusiveMinimum", None)
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    return schema
+
+
 class LLMService:
     def __init__(
         self,
@@ -113,7 +126,7 @@ class LLMService:
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_INSTRUCTION,
                         response_mime_type="application/json",
-                        response_schema=ParsedRequest,
+                        response_schema=_gemini_response_schema(),
                     ),
                 )
                 return ParsedRequest.model_validate_json(response.text)

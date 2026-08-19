@@ -4,7 +4,6 @@ import json
 from types import SimpleNamespace
 
 from pharma_proto.llm.resilience import RetryPolicy
-from pharma_proto.llm.schema import ParsedRequest
 from pharma_proto.llm.service import LLMService
 
 
@@ -13,7 +12,10 @@ class _RecordingGeminiModels:
         self.config = None
 
     def generate_content(self, *, model, contents, config):
+        from google.genai import _transformers
+
         self.config = config
+        _transformers.t_schema(None, config.response_schema)
         return SimpleNamespace(
             text=json.dumps(
                 {
@@ -34,7 +36,7 @@ class _RecordingGeminiClient:
         pass
 
 
-def test_gemini_uses_supported_pydantic_response_schema() -> None:
+def test_gemini_uses_a_schema_accepted_by_the_installed_sdk() -> None:
     client = _RecordingGeminiClient()
     service = LLMService(
         client_factories={"gemini": lambda *args, **kwargs: client},
@@ -52,5 +54,4 @@ def test_gemini_uses_supported_pydantic_response_schema() -> None:
     assert formulation.apis[0].dose_mg == 500
     assert formulation.process == "direct compression"
     assert formulation.n_candidates == 3
-    assert client.models.config.response_schema is ParsedRequest
     assert client.models.config.response_json_schema is None
