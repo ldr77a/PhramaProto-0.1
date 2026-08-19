@@ -1,4 +1,4 @@
-"""게이트 3 — 제조성(근사·대리지표). soft(경고만). 물리시험 대체 아님을 명시.
+"""게이트 2 — 제조성 대리지표. soft(경고만). 물리시험 대체 아님을 명시.
 
 물리 데이터(경도·마손) 없이 "실제 제조된 배합들이 지킨 비율 규칙"에 따르는지로 근사한다:
   1) 결합제 존재    : binder 기능 성분이 있나. 없으면 경고(압축성 우려).
@@ -41,7 +41,7 @@ def check(
     **_,
 ) -> GateResult:
     if repository is None:
-        return GateResult("게이트3 제조성", "skip", "KG 미연결", hard=False)
+        return GateResult("게이트2 제조성 대리지표", "skip", "KG 미연결", hard=False)
 
     sums = _pct_sum_by_function(fi, repository)
     warns, notes = [], []
@@ -71,9 +71,9 @@ def check(
 
     details = warns + notes
     if warns:
-        return GateResult("게이트3 제조성", "warning",
+        return GateResult("게이트2 제조성 대리지표", "warning",
                           f"제조성 근사 경고 {len(warns)}건: {warns[0]} [대리지표]",
                           provenance=_PROV, hard=False, details=details)
-    return GateResult("게이트3 제조성", "pass",
+    return GateResult("게이트2 제조성 대리지표", "pass",
                       "근사: 결합제 존재·기능 %합 KG 분포 내 [대리지표]",
                       provenance=_PROV, hard=False, details=details)

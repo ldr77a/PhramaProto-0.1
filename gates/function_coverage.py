@@ -1,4 +1,4 @@
-"""게이트 6 — 기능 커버리지. 정제에 필수 기능 성분이 다 있는가.
+"""게이트 5 — 필수 기능 구성. 정제에 필수 기능 성분이 다 있는가.
 
 필수 기능: API + ديluent(희석제) + disintegrant(붕해제) + lubricant(활택제).
 결합제(binder)는 제법 따라 선택 → 필수에서 제외(경고로만).
@@ -44,12 +44,12 @@ def check(
 
     if missing:
         note = " (기능 미상 성분 있음 — 매핑 확대 필요)" if unmapped else ""
-        return GateResult("게이트6 기능커버리지", "fail",
+        return GateResult("게이트5 필수 기능 구성", "fail",
                           f"필수 기능 누락: {', '.join(missing)}{note}",
                           provenance=prov, hard=True, details=details)
     status = "warning" if unmapped else "pass"
     reason = f"필수 기능 구비: {', '.join(required)}"
     if unmapped:
         reason += f" (단 기능미상 {len(unmapped)}개: {unmapped[:3]})"
-    return GateResult("게이트6 기능커버리지", status, reason,
+    return GateResult("게이트5 필수 기능 구성", status, reason,
                       provenance=prov, hard=True, details=details)

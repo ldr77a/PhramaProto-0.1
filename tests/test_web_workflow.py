@@ -130,7 +130,7 @@ def _candidate(index: int) -> Candidate:
         pct=16.667,
         function="diluent",
     )
-    gate = GateResult("게이트1 허용범위", "pass", "허용범위 충족")
+    gate = GateResult("게이트1 사용량 범위", "pass", "사용량 범위 충족")
     return Candidate(
         idx=index,
         pick={"diluent": "Microcrystalline cellulose"},
@@ -183,6 +183,26 @@ def test_first_load_only_exposes_api_setup(app_factory) -> None:
             "good": "claude-opus-5",
         },
     }
+
+
+def test_research_screen_contains_collapsed_five_gate_guide(app_factory) -> None:
+    response = app_factory().test_client().get("/")
+    probe = _ElementProbe()
+    probe.feed(response.get_data(as_text=True))
+
+    assert "gate-guide" in probe.elements
+    assert "open" not in probe.attrs("gate-guide")
+    guide = probe.text("gate-guide")
+    for gate in (
+        "게이트1 사용량 범위",
+        "게이트2 제조성 대리지표",
+        "게이트3 총량 제약",
+        "게이트4 조성 합계",
+        "게이트5 필수 기능 구성",
+    ):
+        assert gate in guide
+    assert "게이트6" not in guide
+    assert "화학적 호환성" not in guide
 
 
 def test_generate_returns_one_real_xlsx_download_per_candidate(

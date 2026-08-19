@@ -59,16 +59,46 @@ def _coerce_parsed(value: object) -> ParsedRequest:
 
 
 def _gemini_response_schema() -> dict[str, Any]:
-    schema = ParsedRequest.model_json_schema()
-    pending: list[object] = [schema]
-    while pending:
-        node = pending.pop()
-        if isinstance(node, dict):
-            node.pop("exclusiveMinimum", None)
-            pending.extend(node.values())
-        elif isinstance(node, list):
-            pending.extend(node)
-    return schema
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "apis": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "name": {"type": "STRING"},
+                        "dose_mg": {"type": "NUMBER"},
+                    },
+                    "required": ["name"],
+                },
+            },
+            "dosage_form": {"type": "STRING"},
+            "binder": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "disintegrant": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "diluent": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "lubricant": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "additional_roles": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "role": {"type": "STRING"},
+                        "ingredients": {
+                            "type": "ARRAY",
+                            "items": {"type": "STRING"},
+                        },
+                    },
+                    "required": ["role"],
+                },
+            },
+            "process": {"type": "STRING"},
+            "release_profile": {"type": "STRING"},
+            "n_candidates": {"type": "INTEGER"},
+            "target_total_mg": {"type": "NUMBER"},
+        },
+        "required": ["apis"],
+    }
 
 
 class LLMService:

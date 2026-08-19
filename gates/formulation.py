@@ -1,6 +1,6 @@
 """게이트 공용 타입 — 배합 입력과 게이트 결과.
 
-배합(FormulationInput)을 6개 게이트가 공유한다. 각 게이트는 GateResult 를 돌려주고,
+배합(FormulationInput)을 5개 게이트가 공유한다. 각 게이트는 GateResult 를 돌려주고,
 pipeline 이 종합한다. provenance(I5)·hard/soft 구분을 결과에 담는다.
 """
 
@@ -36,7 +36,7 @@ class FormulationInput:
 
 @dataclass
 class GateResult:
-    gate: str                       # "게이트1 허용범위" 등
+    gate: str                       # "게이트1 사용량 범위" 등
     status: str                     # pass | fail | warning | skip
     reason: str
     provenance: str = ""            # 근거(KG 집계/규칙 출처)
