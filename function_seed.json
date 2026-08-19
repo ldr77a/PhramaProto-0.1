@@ -1,0 +1,21 @@
+{
+  "_doc": "부형제 canonical(정규화 소문자) → 기능(Function) 수동 시드. 지시서 §9: 이번 단계엔 알려진 소수만 수동 시드, 이후 USP-NF/Handbook 으로 보강. I6 준수: schema.json 이 아니라 데이터 시드 파일에 둔다(값 정의는 schema 밖).",
+  "_note": "키는 resolver.normalize() 적용 후 부분일치로 매칭(예: 'lactose monohydrate' 도 'lactose' 시드에 매칭). 값은 controlled vocab(영문). 표시 현지화(희석제 등)는 Browser caption/번역 단계의 책임.",
+  "map": {
+    "lactose": "diluent",
+    "microcrystalline cellulose": "diluent",
+    "mannitol": "diluent",
+    "dibasic calcium phosphate": "diluent",
+    "starch": "disintegrant",
+    "corn starch": "disintegrant",
+    "croscarmellose sodium": "disintegrant",
+    "sodium starch glycolate": "disintegrant",
+    "magnesium stearate": "lubricant",
+    "stearic acid": "lubricant",
+    "talc": "glidant",
+    "colloidal silicon dioxide": "glidant",
+    "povidone": "binder",
+    "hydroxypropyl methylcellulose": "binder",
+    "hypromellose": "coating"
+  }
+}

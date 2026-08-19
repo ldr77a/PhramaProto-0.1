@@ -1,0 +1,100 @@
+"""Fill omitted oral-solid excipient roles from DB evidence, then curated defaults."""
+
+from __future__ import annotations
+
+from generation.oral_solid_profiles import (
+    CURATED_DEFAULTS,
+    OralSolidProfile,
+    resolve_profile,
+    role_aliases,
+)
+from pharma_proto.knowledge import KnowledgeRepository
+
+
+def _dedupe(values: list[str], excluded: set[str], limit: int) -> list[str]:
+    selected: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        name = value.strip()
+        key = name.casefold()
+        if not name or key in seen or key in excluded:
+            continue
+        seen.add(key)
+        selected.append(name)
+        if len(selected) == limit:
+            break
+    return selected
+
+
+def complete_excipient_choices(
+    spec,
+    repository: KnowledgeRepository,
+    *,
+    limit_per_role: int = 3,
+) -> OralSolidProfile:
+    """Mutate a parsed spec only where role choices are absent."""
+    profile = resolve_profile(
+        spec.dosage_form,
+        spec.process,
+        getattr(spec, "release_profile", ""),
+    )
+    spec.profile_id = profile.profile_id
+    excluded = {api.name.casefold() for api in spec.apis}
+    source_map = getattr(spec, "selection_sources", None)
+    if source_map is None:
+        source_map = {}
+        spec.selection_sources = source_map
+
+    lookup = getattr(repository, "ingredient_candidates", None)
+    catalog_lookup = getattr(repository, "function_catalog", None)
+    catalog = tuple(catalog_lookup()) if callable(catalog_lookup) else ()
+    auto_function_names = {
+        descriptor.name
+        for descriptor in catalog
+        if descriptor.scope == "oral_solid" and descriptor.support_status == "auto"
+    }
+    for role in profile.auto_roles:
+        explicit = _dedupe(list(spec.excipient_choices.get(role, ())), excluded, limit_per_role)
+        if explicit:
+            spec.excipient_choices[role] = explicit
+            source_map[role] = "user"
+            continue
+
+        candidates: list[str] = []
+        curated = list(CURATED_DEFAULTS.get(role, ()))
+        if callable(lookup):
+            aliases = role_aliases(role)
+            if catalog:
+                aliases = tuple(alias for alias in aliases if alias in auto_function_names)
+            candidates = list(
+                lookup(
+                    aliases,
+                    dosage_form_bases=profile.dosage_form_bases,
+                    limit=max(30, limit_per_role * 10),
+                )
+            ) if aliases else []
+        curated_keys = {name.casefold() for name in curated}
+        reviewed_db_candidates = [
+            name for name in candidates if name.strip().casefold() in curated_keys
+        ]
+        selected = _dedupe(reviewed_db_candidates, excluded, limit_per_role)
+        selected_keys = excluded | {name.casefold() for name in selected}
+        fallback = _dedupe(
+            curated,
+            selected_keys,
+            limit_per_role - len(selected),
+        )
+        combined = selected + fallback
+        if combined:
+            spec.excipient_choices[role] = combined
+            if selected and fallback:
+                source_map[role] = "kg+curated_default"
+            elif selected:
+                source_map[role] = "kg"
+            else:
+                source_map[role] = "curated_default"
+
+    return profile
+
+
+__all__ = ["complete_excipient_choices"]

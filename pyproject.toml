@@ -1,0 +1,37 @@
+[project]
+name = "pharma-proto"
+version = "0.1.0"
+requires-python = ">=3.12.13,<3.13"
+dependencies = [
+  "Flask",
+  "waitress",
+  "pydantic",
+  "httpx",
+  "rdkit",
+  "openai",
+  "google-genai",
+  "anthropic",
+]
+
+[project.optional-dependencies]
+admin = ["neo4j", "PyYAML", "pypdf", "openpyxl", "tzdata"]
+
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "ruff", "neo4j", "PyYAML", "pypdf", "openpyxl", "tzdata"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pharma_proto", "generation", "gates", "cleaning"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not neo4j'"
+cache_dir = "$LOCALAPPDATA/PhramaProto/runtime/pytest-cache"
+markers = [
+  "hpe6: requires the curated HPE6 reference dataset",
+  "neo4j: requires an explicitly configured live Neo4j database",
+  "windows_credential: writes a disposable Windows Credential Manager entry",
+]

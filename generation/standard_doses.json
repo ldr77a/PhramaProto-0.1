@@ -1,0 +1,9 @@
+{
+  "rabeprazole": {"mg": 20, "ref": "표준 성인 용량"},
+  "magnesium oxide": {"mg": 250, "ref": "제산 통상량"},
+  "metformin": {"mg": 500, "ref": "표준 성인 용량"},
+  "atorvastatin": {"mg": 20, "ref": "표준 성인 용량"},
+  "amlodipine": {"mg": 5, "ref": "표준 성인 용량"},
+  "omeprazole": {"mg": 20, "ref": "표준 성인 용량"},
+  "losartan": {"mg": 50, "ref": "표준 성인 용량"}
+}
