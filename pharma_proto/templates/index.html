@@ -9,33 +9,57 @@
 </head>
 <body>
   <main>
-    <header>
-      <p class="eyebrow">PHRAMA PROTO · LOCAL RESEARCH TOOL</p>
-      <h1>신약 배합 생성기</h1>
-      <p>연구 검토용 시제품입니다. 생성 결과는 반드시 사람이 검토해야 합니다.</p>
-    </header>
-    <section class="status" aria-live="polite">
-      <strong>데이터베이스</strong><span id="health">확인 중…</span>
-    </section>
-    <section class="controls">
-      <label>공급자
-        <select id="provider"><option value="openai">OpenAI</option><option value="gemini">Gemini</option><option value="claude">Claude</option></select>
-      </label>
-      <label>모델 등급
-        <select id="tier"><option value="cheap">저렴</option><option value="normal" selected>보통</option><option value="good">좋은</option></select>
-      </label>
-      <label class="wide">이번 실행의 API 키
+    <section id="api-setup" class="setup-card" aria-labelledby="setup-title">
+      <p class="eyebrow">PHRAMA PROTO · API SETUP</p>
+      <h1 id="setup-title">API 설정</h1>
+      <div class="setup-fields">
+        <label>모델 종류
+          <select id="provider">
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+            <option value="claude">Claude</option>
+          </select>
+        </label>
+        <label>모델 이름
+          <select id="tier">
+            {% for tier, model in model_catalog.openai.items() %}
+            <option value="{{ tier }}"{% if tier == "normal" %} selected{% endif %}>{{ model }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <p id="api-cost-notice" class="notice">외부 AI API 호출은 과금 대상입니다.</p>
+        <label>이번 실행의 API 키
         <input id="api-key" type="password" autocomplete="off" spellcheck="false">
-      </label>
-      <button id="save-key" type="button">이번 실행에 적용</button>
-      <label class="wide">연구 질문
-        <textarea id="question" maxlength="4000" rows="6" placeholder="아세트아미노펜 500 mg 속방정제를 직접타정법으로 제조해라."></textarea>
-      </label>
-      <button id="generate" type="button">조성표 생성</button>
+        </label>
+        <button id="save-key" type="button">확인</button>
+      </div>
+      <div id="setup-message" class="message" role="status"></div>
     </section>
-    <p class="notice">외부 AI API 호출은 선택한 공급자의 과금 대상일 수 있습니다.</p>
-    <div id="message" role="status"></div>
-    <section id="results"></section>
+
+    <section id="research-app" hidden>
+      <header>
+        <p class="eyebrow">PHRAMA PROTO · LOCAL RESEARCH TOOL</p>
+        <h1>신약 배합 생성기</h1>
+        <div class="model-summary">
+          <span>사용 모델 <strong id="selected-model">{{ model_catalog.openai.normal }}</strong></span>
+          <button id="change-key" class="secondary compact" type="button">API 설정 변경</button>
+        </div>
+      </header>
+      <section class="status" aria-live="polite">
+        <strong>데이터베이스</strong><span id="health">확인 중…</span>
+      </section>
+      <section class="controls">
+        <label class="wide">연구 질문
+          <textarea id="question" maxlength="4000" rows="6" placeholder="아세트아미노펜 500 mg 속방정제를 직접타정법으로 제조해라."></textarea>
+        </label>
+        <button id="generate" type="button">조성표 생성</button>
+      </section>
+      <div id="message" class="message" role="status"></div>
+      <section id="results"></section>
+      <p id="review-notice" class="notice review-notice" hidden>연구 검토용 시제품입니다. 생성 결과는 반드시 사람이 검토해야 합니다.</p>
+    </section>
+
+    <script id="model-catalog" type="application/json">{{ model_catalog | tojson }}</script>
   </main>
 </body>
 </html>

@@ -64,6 +64,24 @@ def _prov(cand, comp):
     return label + (f", n={a.n}" if a.n else ""), green
 
 
+def candidate_rows(cand) -> list[tuple[str, str, float | None, float | None, str, bool]]:
+    """후보 조성표의 화면·엑셀 공용 행 데이터."""
+    rows = []
+    for component in cand.components:
+        provenance, green = _prov(cand, component)
+        rows.append(
+            (
+                _title_en(component.name),
+                _FUNC_KO.get(component.function or "", component.function or "-"),
+                component.mg,
+                component.pct,
+                provenance,
+                green,
+            )
+        )
+    return rows
+
+
 def _clip(value: str, limit: int) -> str:
     compact = " ".join(value.split())
     return compact if len(compact) <= limit else compact[: limit - 1].rstrip() + "…"
@@ -161,13 +179,12 @@ def candidate_html(cand) -> str:
              "unresolved": "❌ 미해결 (하드 실패)"}[cand.status]
 
     rows = []
-    for c in cand.components:
-        prov, green = _prov(cand, c)
-        mg = f"{c.mg:.1f}" if c.mg is not None else "-"
-        pct = f"{c.pct:.2f}" if c.pct is not None else "-"
+    for name, function, raw_mg, raw_pct, prov, green in candidate_rows(cand):
+        mg = f"{raw_mg:.1f}" if raw_mg is not None else "-"
+        pct = f"{raw_pct:.2f}" if raw_pct is not None else "-"
         rows.append(
-            f"<tr><td class='ing'>{html.escape(_title_en(c.name))}</td>"
-            f"<td>{_FUNC_KO.get(c.function or '', c.function or '-')}</td>"
+            f"<tr><td class='ing'>{html.escape(name)}</td>"
+            f"<td>{html.escape(function)}</td>"
             f"<td class='num'>{mg}</td><td class='num'>{pct}</td>"
             f"<td class='ev {'kg' if green else ''}'>{html.escape(prov)}</td></tr>")
     tot_mg = sum(c.mg for c in cand.components if c.mg) or 0
@@ -195,7 +212,10 @@ def candidate_html(cand) -> str:
     <div class="card">
       <div class="card-head">
         <h3>조성 후보 {cand.idx}</h3>
-        <span class="badge {badge_cls}">{badge}</span>
+        <div class="card-actions">
+          <button class="download-xlsx secondary compact" type="button" data-candidate-index="{cand.idx}" disabled>엑셀 저장</button>
+          <span class="badge {badge_cls}">{badge}</span>
+        </div>
       </div>
       <div class="pick">{html.escape(picks)}</div>
       <table>

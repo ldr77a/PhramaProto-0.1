@@ -9,6 +9,7 @@ dependencies = [
   "httpx",
   "rdkit",
   "openai",
+  "openpyxl",
   "google-genai",
   "anthropic",
 ]

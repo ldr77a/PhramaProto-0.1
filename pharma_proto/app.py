@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 from collections.abc import Mapping
 from pathlib import Path
@@ -21,6 +22,7 @@ from pharma_proto.errors import (
     REQUEST_ERROR,
     AppError,
 )
+from pharma_proto.excel_export import candidate_workbook
 from pharma_proto.knowledge.sqlite_repository import SQLiteKnowledgeRepository
 from pharma_proto.llm.catalog import MODEL_CATALOG, model_for
 from pharma_proto.llm.memory_keys import MemoryKeyStore
@@ -113,7 +115,7 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return render_template("index.html", model_catalog=MODEL_CATALOG)
 
     @app.get("/health")
     def health():
@@ -177,7 +179,17 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
             model=model,
             snapshot_id=str(repository.health()["snapshot_id"]),
         )
-        return jsonify(html=results_html(spec, candidates))
+        downloads = [
+            {
+                "candidate_idx": candidate.idx,
+                "filename": f"조성_후보_{candidate.idx}.xlsx",
+                "content_base64": base64.b64encode(
+                    candidate_workbook(candidate)
+                ).decode("ascii"),
+            }
+            for candidate in candidates
+        ]
+        return jsonify(html=results_html(spec, candidates), downloads=downloads)
 
     @app.errorhandler(AppError)
     def app_error(error: AppError):
